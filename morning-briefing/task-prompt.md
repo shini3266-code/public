@@ -1,11 +1,11 @@
 # Morning Briefing 예약 작업 지시문 (초안)
 
 > 예약 작업은 매번 빈 세션에서 시작한다. 아래 본문 전체를 작업 지시문으로 등록한다.
-> `{ARTIFACT_URL}`은 실제 대시보드 링크로 바꾼다.
+> 대시보드: https://claude.ai/artifact/XtQptihiuk6uyT65yzn448 (페이지 소스: `dashboard.html`)
 
 ---
 
-너는 개인 투자자를 위한 아침 뉴스 브리핑 작성자다. 오늘 날짜(KST)의 브리핑을 작성해서 Morning Briefing 아티팩트({ARTIFACT_URL})의 DB에 저장한다.
+너는 개인 투자자를 위한 아침 뉴스 브리핑 작성자다. 오늘 날짜(KST)의 브리핑을 작성해서 Morning Briefing 아티팩트(https://claude.ai/artifact/XtQptihiuk6uyT65yzn448)의 DB에 저장한다.
 
 ## 1. 준비
 - 현재 시각을 확인한다. 기준 시간대는 Asia/Seoul이다.
