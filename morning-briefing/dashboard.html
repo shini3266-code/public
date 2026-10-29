@@ -1,0 +1,599 @@
+<title>Morning Briefing</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one reading column (core → 경제 → 산업 → 종목 grid), sticky date bar on top, watchlist editor as a drawer panel. */
+:root {
+  --bg: #f3f5f6;
+  --surface: #ffffff;
+  --ink: #16202a;
+  --muted: #5d6b78;
+  --line: #dde3e8;
+  --accent: #1d5c86;
+  --accent-soft: #e3eef6;
+  --sun: #b86e00;
+  --sun-soft: #fbf0dc;
+  --warn: #9a3412;
+  --warn-soft: #fdeee6;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151b; --surface: #17202a; --ink: #e6ecf1; --muted: #93a2b0; --line: #26323e;
+    --accent: #7db7e0; --accent-soft: #1b3346; --sun: #f0b257; --sun-soft: #33270f;
+    --warn: #f5a37a; --warn-soft: #3a2014; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151b; --surface: #17202a; --ink: #e6ecf1; --muted: #93a2b0; --line: #26323e;
+  --accent: #7db7e0; --accent-soft: #1b3346; --sun: #f0b257; --sun-soft: #33270f;
+  --warn: #f5a37a; --warn-soft: #3a2014; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--surface);
+}
+a { color: var(--accent); }
+button, input, select { font: inherit; color: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.wrap {
+  max-width: 860px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* Top bar */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.bar .wrap { display: flex; align-items: center; gap: 12px; padding-block: 10px; flex-wrap: wrap; }
+.brand { font-weight: 700; letter-spacing: -0.01em; margin-right: auto; display: flex; align-items: baseline; gap: 8px; }
+.brand small { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-weight: 400; }
+.datenav { display: flex; align-items: center; gap: 6px; }
+.iconbtn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+  min-width: 34px; height: 34px; padding: 0 10px; cursor: pointer;
+}
+.iconbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.iconbtn:disabled { opacity: .35; cursor: default; }
+#dateSelect {
+  height: 34px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  padding: 0 8px; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums;
+}
+
+main .wrap { display: grid; gap: 28px; padding-block: 24px 64px; }
+
+.notice {
+  border-radius: var(--radius); padding: 10px 14px; font-size: 14px;
+  background: var(--warn-soft); color: var(--warn);
+}
+.notice.info { background: var(--accent-soft); color: var(--accent); }
+
+/* Dateline + core */
+.dateline { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.dateline h1 { margin: 0; font-size: 28px; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.dateline .meta { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.core {
+  background: var(--sun-soft); border-radius: var(--radius); padding: 18px 20px;
+  display: grid; gap: 10px;
+}
+.core h2 { margin: 0; }
+.core ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: c; }
+.core li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 17px; font-weight: 600; line-height: 1.45; }
+.core li::before {
+  counter-increment: c; content: counter(c);
+  font-family: var(--font-mono); font-size: 13px; color: var(--sun); padding-top: 3px;
+}
+
+/* Sections */
+.section { display: grid; gap: 12px; min-width: 0; }
+.eyebrow {
+  margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); display: flex; align-items: center; gap: 8px;
+}
+.eyebrow .count { font-family: var(--font-mono); font-weight: 400; letter-spacing: 0; }
+.core .eyebrow { color: var(--sun); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.items { display: grid; }
+.item { padding: 16px 18px; display: grid; gap: 6px; min-width: 0; }
+.item + .item { border-top: 1px solid var(--line); }
+.item h3 { margin: 0; font-size: 16px; line-height: 1.45; text-wrap: balance; }
+.item h3 a { color: inherit; text-decoration: none; }
+.item h3 a:hover { color: var(--accent); }
+.item h3 .link { font-size: 13px; margin-left: 4px; }
+.item p { margin: 0; color: var(--ink); }
+.item .meaning { color: var(--muted); font-size: 14px; display: grid; grid-template-columns: auto 1fr; gap: 8px; }
+.item .meaning b { color: var(--accent); font-weight: 600; font-size: 12px; padding-top: 2px; white-space: nowrap; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  font-size: 12px; line-height: 1; padding: 5px 8px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); font-weight: 500;
+}
+.tag.rel { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.empty { padding: 16px 18px; color: var(--muted); font-size: 14px; }
+
+/* Filter chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 5px 12px; font-size: 13px; cursor: pointer;
+}
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip .n { font-family: var(--font-mono); font-size: 11px; opacity: .7; margin-left: 4px; }
+
+/* Stock grid */
+.stocks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 12px; align-items: start; }
+.stock { min-width: 0; }
+.stock header { padding: 14px 18px 10px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.stock header h3 { margin: 0; font-size: 17px; }
+.code { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.badge { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: var(--sun-soft); color: var(--sun); font-weight: 600; }
+.stock.quiet header { border-bottom: 0; }
+.stock.quiet .empty { padding-top: 0; }
+
+/* Watchlist editor */
+.editor { padding: 16px 18px; display: grid; gap: 14px; }
+.wl { list-style: none; margin: 0; padding: 0; display: grid; }
+.wl li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.wl li:first-child { border-top: 0; }
+.wl .name { font-weight: 600; }
+.wl .rm { margin-left: auto; }
+.textbtn { background: none; border: 0; color: var(--warn); cursor: pointer; padding: 4px 6px; font-size: 13px; }
+.textbtn.confirm { font-weight: 700; }
+form.add { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr auto auto; gap: 8px; align-items: end; }
+form.add label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+form.add input[type=text], form.add select {
+  height: 36px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; background: var(--bg); min-width: 0;
+}
+form.add .check { display: flex; align-items: center; gap: 6px; height: 36px; font-size: 13px; color: var(--ink); }
+.primary {
+  height: 36px; border: 0; border-radius: 8px; padding: 0 16px; cursor: pointer;
+  background: var(--accent); color: var(--surface); font-weight: 600;
+}
+.primary:disabled { opacity: .5; cursor: default; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+.status { font-size: 13px; min-height: 1.2em; margin: 0; }
+.status.err { color: var(--warn); }
+
+.state { text-align: center; padding: 56px 16px; color: var(--muted); display: grid; gap: 6px; }
+.state strong { color: var(--ink); font-size: 18px; }
+.spinner { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); margin: 0 auto 8px; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+@media (max-width: 640px) {
+  .dateline h1 { font-size: 23px; }
+  .core li { font-size: 16px; }
+  form.add { grid-template-columns: 1fr 1fr; }
+  form.add .primary { grid-column: 1 / -1; }
+}
+</style>
+
+<div class="bar">
+  <div class="wrap">
+    <div class="brand">Morning Briefing <small>07:00 KST</small></div>
+    <div class="datenav">
+      <button class="iconbtn" id="olderBtn" type="button" aria-label="이전 날짜" disabled>‹</button>
+      <select id="dateSelect" aria-label="날짜 선택" disabled><option>—</option></select>
+      <button class="iconbtn" id="newerBtn" type="button" aria-label="다음 날짜" disabled>›</button>
+    </div>
+    <button class="iconbtn" id="editBtn" type="button" aria-expanded="false" aria-controls="editorSec">종목 편집</button>
+  </div>
+</div>
+
+<main>
+  <div class="wrap">
+    <section class="section" id="editorSec" hidden>
+      <h2 class="eyebrow">관심종목 편집</h2>
+      <div class="panel editor">
+        <p class="hint">변경 사항은 다음 날 아침 브리핑부터 반영됩니다.</p>
+        <ul class="wl" id="wlList"></ul>
+        <form class="add" id="addForm" autocomplete="off">
+          <label>종목명<input type="text" id="addName" placeholder="예: 마이크론" required maxlength="40"></label>
+          <label>티커·코드<input type="text" id="addCode" placeholder="MU · 비상장은 비움" maxlength="20"></label>
+          <label>시장<select id="addMarket"><option value="US">미국</option><option value="KR">한국</option><option value="JP">일본</option></select></label>
+          <label class="check"><input type="checkbox" id="addUnlisted"> 비상장</label>
+          <button class="primary" id="addBtn" type="submit">추가</button>
+        </form>
+        <p class="status" id="editStatus" role="status"></p>
+      </div>
+    </section>
+
+    <div id="view">
+      <div class="state"><div class="spinner" aria-hidden="true"></div><strong>브리핑을 불러오는 중</strong><span>저장된 브리핑과 관심종목을 읽고 있습니다.</span></div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var MARKET = { US: "미국", KR: "한국", JP: "일본" };
+  var state = {
+    db: null,
+    canWrite: true,
+    loaded: { briefings: false, watchlist: false },
+    briefings: {},       // date -> doc
+    dates: [],           // desc
+    watchlist: [],
+    current: null,       // date shown
+    pinned: false,       // user navigated away from latest
+    filter: "all",
+    error: null
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === "class") n.className = attrs[k];
+      else if (k === "text") n.textContent = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    }
+    (kids || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function str(v) { return typeof v === "string" ? v.trim() : ""; }
+  function arr(v) { return Array.isArray(v) ? v : []; }
+  function safeUrl(u) { u = str(u); return /^https?:\/\//i.test(u) ? u : ""; }
+
+  function todayKST() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  }
+  var DOW = ["일", "월", "화", "수", "목", "금", "토"];
+  function dowOf(d) { var p = d.split("-").map(Number); return DOW[new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay()]; }
+  function prettyDate(d, dow) {
+    var p = d.split("-");
+    return p[0] + "년 " + Number(p[1]) + "월 " + Number(p[2]) + "일 (" + (dow || dowOf(d)) + ")";
+  }
+  function timeKST(iso) {
+    var t = new Date(iso);
+    if (isNaN(t)) return "";
+    return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false }).format(t);
+  }
+
+  // ---------- rendering ----------
+  function newsItem(n, opts) {
+    var url = safeUrl(n.url);
+    var title = str(n.title) || "제목 없음";
+    var h = el("h3", null, url
+      ? [el("a", { href: url, target: "_blank", rel: "noopener noreferrer" }, [title, el("span", { class: "link", "aria-label": "원문 열기", text: "🔗" })])]
+      : [title]);
+    var kids = [];
+    var tags = arr(n.tags).filter(function (t) { return typeof t === "string"; });
+    var rel = opts && opts.related ? arr(n.related).map(nameOf).filter(Boolean) : [];
+    if (tags.length || rel.length) {
+      kids.push(el("div", { class: "tags" },
+        tags.map(function (t) { return el("span", { class: "tag", text: t }); })
+          .concat(rel.map(function (r) { return el("span", { class: "tag rel", text: r }); }))));
+    }
+    kids.push(h);
+    if (str(n.summary)) kids.push(el("p", { text: str(n.summary) }));
+    if (str(n.meaning)) kids.push(el("div", { class: "meaning" }, [el("b", { text: "의미" }), el("span", { text: str(n.meaning) })]));
+    return el("article", { class: "item" }, kids);
+  }
+
+  function nameOf(id) {
+    for (var i = 0; i < state.watchlist.length; i++) if (state.watchlist[i].id === id) return state.watchlist[i].name;
+    return "";
+  }
+
+  function section(label, count, body) {
+    var h = el("h2", { class: "eyebrow" }, [label, count != null ? el("span", { class: "count", text: String(count) }) : null]);
+    return el("section", { class: "section" }, [h, body]);
+  }
+
+  function itemsPanel(list, opts, emptyText) {
+    if (!list.length) return el("div", { class: "panel" }, [el("div", { class: "empty", text: emptyText || "특이사항 없음" })]);
+    return el("div", { class: "panel items" }, list.map(function (n) { return newsItem(n, opts); }));
+  }
+
+  function stateBox(title, sub) {
+    return el("div", { class: "state" }, [el("strong", { text: title }), sub ? el("span", { text: sub }) : null]);
+  }
+
+  function render() {
+    var view = $("view");
+    view.textContent = "";
+    renderNav();
+    renderEditor();
+
+    if (state.error) {
+      view.appendChild(stateBox("브리핑을 불러올 수 없습니다", state.error));
+      return;
+    }
+    if (!state.loaded.briefings || !state.loaded.watchlist) {
+      view.appendChild(el("div", { class: "state" }, [el("div", { class: "spinner", "aria-hidden": "true" }), el("strong", { text: "브리핑을 불러오는 중" })]));
+      return;
+    }
+    if (!state.dates.length) {
+      view.appendChild(stateBox("아직 저장된 브리핑이 없습니다", "첫 브리핑은 내일 아침 7시에 도착합니다. 그 전에 ‘종목 편집’에서 관심종목을 정리해 두세요."));
+      return;
+    }
+
+    var date = state.current;
+    var b = state.briefings[date] || {};
+    var frag = el("div", { style: "display:grid;gap:28px" });
+    var today = todayKST();
+
+    if (state.dates[0] !== today && date === state.dates[0]) {
+      frag.appendChild(el("div", { class: "notice", role: "status", text: "오늘(" + prettyDate(today) + ") 브리핑이 아직 없습니다. 가장 최근 브리핑을 보여드립니다." }));
+    } else if (date !== state.dates[0]) {
+      frag.appendChild(el("div", { class: "notice info", text: "지난 브리핑을 보고 있습니다." }));
+    }
+
+    var gen = b.generatedAt ? timeKST(b.generatedAt) : "";
+    frag.appendChild(el("div", { class: "dateline" }, [
+      el("h1", { text: prettyDate(date, str(b.dow)) }),
+      gen ? el("span", { class: "meta", text: gen + " 작성" }) : null
+    ]));
+
+    // core
+    var core = arr(b.core).map(str).filter(Boolean);
+    frag.appendChild(el("section", { class: "core" }, [
+      el("h2", { class: "eyebrow", text: "오늘의 핵심" }),
+      core.length ? el("ol", null, core.map(function (c) { return el("li", { text: c }); })) : el("p", { class: "hint", text: "특이사항 없음" })
+    ]));
+
+    // filter chips
+    var stocks = (b.stocks && typeof b.stocks === "object") ? b.stocks : {};
+    var chipIds = state.watchlist.map(function (w) { return w.id; });
+    Object.keys(stocks).forEach(function (id) { if (chipIds.indexOf(id) < 0) chipIds.push(id); });
+    if (state.filter !== "all" && chipIds.indexOf(state.filter) < 0) state.filter = "all";
+    var chips = el("div", { class: "chips", role: "group", "aria-label": "종목 필터" });
+    chips.appendChild(chip("all", "전체", null));
+    chipIds.forEach(function (id) {
+      var cnt = arr(stocks[id]).length + arr(b.industry).filter(function (n) { return arr(n.related).indexOf(id) >= 0; }).length;
+      chips.appendChild(chip(id, nameOf(id) || id, cnt));
+    });
+    frag.appendChild(chips);
+
+    var f = state.filter;
+
+    // econ (market-wide, hidden while a stock filter is on)
+    if (f === "all") {
+      var econ = arr(b.econ);
+      frag.appendChild(section("경제 · 매크로·지정학", econ.length, itemsPanel(econ)));
+    }
+
+    // industry
+    var ind = arr(b.industry);
+    if (f !== "all") ind = ind.filter(function (n) { return arr(n.related).indexOf(f) >= 0; });
+    frag.appendChild(section("산업", ind.length, itemsPanel(ind, { related: true },
+      f === "all" ? "특이사항 없음" : "이 종목과 연결된 산업 뉴스가 없습니다.")));
+
+    // stocks
+    var grid = el("div", { class: "stocks" });
+    chipIds.filter(function (id) { return f === "all" || id === f; }).forEach(function (id) {
+      grid.appendChild(stockCard(id, arr(stocks[id])));
+    });
+    frag.appendChild(section("종목", null, grid));
+
+    view.appendChild(frag);
+  }
+
+  function chip(id, label, n) {
+    var b = el("button", { class: "chip", type: "button", "aria-pressed": String(state.filter === id) },
+      [label, n ? el("span", { class: "n", text: String(n) }) : null]);
+    b.addEventListener("click", function () { state.filter = id; render(); });
+    return b;
+  }
+
+  function stockCard(id, news) {
+    var w = null;
+    state.watchlist.forEach(function (x) { if (x.id === id) w = x; });
+    var head = el("header", null, [
+      el("h3", { text: w ? w.name : id }),
+      w ? el("span", { class: "code", text: (w.code ? w.code + " · " : "") + (MARKET[w.market] || w.market || "") }) : el("span", { class: "code", text: "관심종목에서 삭제됨" }),
+      w && w.listed === false ? el("span", { class: "badge", text: "비상장" }) : null
+    ]);
+    var body = news.length
+      ? el("div", { class: "items" }, news.slice(0, 3).map(function (n) { return newsItem(n); }))
+      : el("div", { class: "empty", text: "특이사항 없음" });
+    return el("article", { class: "panel stock" + (news.length ? "" : " quiet") }, [head, body]);
+  }
+
+  function renderNav() {
+    var sel = $("dateSelect");
+    var ds = state.dates;
+    sel.textContent = "";
+    if (!ds.length) { sel.appendChild(el("option", { text: "—" })); sel.disabled = true; }
+    else {
+      ds.forEach(function (d) { sel.appendChild(el("option", { value: d, text: d + " (" + dowOf(d) + ")" })); });
+      sel.value = state.current;
+      sel.disabled = false;
+    }
+    var i = ds.indexOf(state.current);
+    $("olderBtn").disabled = i < 0 || i >= ds.length - 1;
+    $("newerBtn").disabled = i <= 0;
+  }
+
+  function go(date) {
+    if (state.dates.indexOf(date) < 0) return;
+    state.current = date;
+    state.pinned = date !== state.dates[0];
+    try { history.replaceState(null, "", state.pinned ? "#" + date : location.pathname + location.search); } catch (e) {}
+    render();
+    window.scrollTo({ top: 0 });
+  }
+
+  $("dateSelect").addEventListener("change", function (e) { go(e.target.value); });
+  $("olderBtn").addEventListener("click", function () { go(state.dates[state.dates.indexOf(state.current) + 1]); });
+  $("newerBtn").addEventListener("click", function () { go(state.dates[state.dates.indexOf(state.current) - 1]); });
+  window.addEventListener("hashchange", function () {
+    var h = location.hash.slice(1);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(h)) go(h);
+  });
+
+  // ---------- watchlist editor ----------
+  var pendingRemove = null;
+
+  $("editBtn").addEventListener("click", function () {
+    var sec = $("editorSec");
+    sec.hidden = !sec.hidden;
+    this.setAttribute("aria-expanded", String(!sec.hidden));
+    if (!sec.hidden) sec.scrollIntoView({ block: "start" });
+  });
+
+  function renderEditor() {
+    var ul = $("wlList");
+    ul.textContent = "";
+    if (!state.watchlist.length) ul.appendChild(el("li", { class: "hint", text: "관심종목이 없습니다. 아래에서 추가하세요." }));
+    state.watchlist.forEach(function (w) {
+      var confirming = pendingRemove === w.id;
+      var rm = el("button", { class: "textbtn rm" + (confirming ? " confirm" : ""), type: "button", text: confirming ? "정말 삭제" : "삭제" });
+      rm.disabled = !state.canWrite || !state.db;
+      rm.addEventListener("click", function () {
+        if (pendingRemove !== w.id) { pendingRemove = w.id; renderEditor(); return; }
+        pendingRemove = null;
+        saveWatchlist(state.watchlist.filter(function (x) { return x.id !== w.id; }), w.name + " 삭제됨");
+      });
+      ul.appendChild(el("li", null, [
+        el("span", { class: "name", text: w.name }),
+        el("span", { class: "code", text: (w.code || "—") + " · " + (MARKET[w.market] || w.market) }),
+        w.listed === false ? el("span", { class: "badge", text: "비상장" }) : null,
+        rm
+      ]));
+    });
+    var off = !state.canWrite || !state.db;
+    ["addName", "addCode", "addMarket", "addUnlisted", "addBtn"].forEach(function (id) { $(id).disabled = off; });
+    if (state.db && !state.canWrite) setStatus("이 브리핑의 관심종목을 바꿀 권한이 없습니다.", true);
+  }
+
+  $("addUnlisted").addEventListener("change", function () {
+    $("addCode").disabled = this.checked;
+    if (this.checked) $("addCode").value = "";
+  });
+
+  function slug(s) {
+    return s.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  }
+
+  $("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = str($("addName").value);
+    var unlisted = $("addUnlisted").checked;
+    var code = unlisted ? "" : str($("addCode").value).toUpperCase();
+    var market = $("addMarket").value;
+    if (!name) { setStatus("종목명을 입력하세요.", true); return; }
+    if (!unlisted && !code) { setStatus("상장 종목은 티커나 종목코드가 필요합니다. 비상장이면 ‘비상장’을 체크하세요.", true); return; }
+    var dup = state.watchlist.some(function (w) { return w.name === name || (code && w.code === code); });
+    if (dup) { setStatus(name + "은(는) 이미 관심종목에 있습니다.", true); return; }
+    var base = slug(code) || slug(name);
+    if (!base || /^\d/.test(base)) base = "s-" + (base || Date.now().toString(36));
+    var id = base, k = 2;
+    while (state.watchlist.some(function (w) { return w.id === id; })) id = base + "-" + (k++);
+    var item = { id: id, name: name, code: code || null, market: market, listed: !unlisted };
+    saveWatchlist(state.watchlist.concat([item]), name + " 추가됨 · 다음 날 브리핑부터 반영됩니다").then(function (ok) {
+      if (ok) { $("addForm").reset(); $("addCode").disabled = false; }
+    });
+  });
+
+  function setStatus(msg, err) {
+    var s = $("editStatus");
+    s.textContent = msg || "";
+    s.className = "status" + (err ? " err" : "");
+  }
+
+  function nowKSTiso() {
+    var p = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+      .formatToParts(new Date()).reduce(function (o, x) { o[x.type] = x.value; return o; }, {});
+    return p.year + "-" + p.month + "-" + p.day + "T" + (p.hour === "24" ? "00" : p.hour) + ":" + p.minute + ":" + p.second + "+09:00";
+  }
+
+  var saving = false;
+  function saveWatchlist(items, okMsg) {
+    if (!state.db || saving) return Promise.resolve(false);
+    saving = true;
+    $("addBtn").disabled = true;
+    setStatus("저장 중…");
+    return state.db.doc("config/watchlist").set({ items: items, updatedAt: nowKSTiso() }).then(function () {
+      state.watchlist = items;
+      setStatus(okMsg);
+      render();
+      return true;
+    }, function (err) {
+      if (err && err.code === "invalid_argument") { state.canWrite = false; setStatus("이 브리핑의 관심종목을 바꿀 권한이 없습니다.", true); }
+      else setStatus("저장하지 못했습니다. 잠시 후 다시 시도하세요.", true);
+      return false;
+    }).then(function (ok) { saving = false; renderEditor(); return ok; });
+  }
+
+  // ---------- data ----------
+  function onBriefings(snap) {
+    var map = {}, dates = [];
+    snap.docs.forEach(function (d) {
+      if (!d.exists) return;
+      var data = d.data() || {};
+      var date = /^\d{4}-\d{2}-\d{2}$/.test(String(data.date)) ? data.date : d.id;
+      map[date] = data;
+      dates.push(date);
+    });
+    dates.sort().reverse();
+    state.briefings = map;
+    state.dates = dates;
+    state.loaded.briefings = true;
+    var hash = location.hash.slice(1);
+    if (!state.pinned && dates.indexOf(hash) >= 0) { state.current = hash; state.pinned = true; }
+    if (!state.pinned || dates.indexOf(state.current) < 0) { state.current = dates[0] || null; state.pinned = false; }
+    render();
+  }
+
+  function onWatchlist(snap) {
+    var items = snap.exists ? arr((snap.data() || {}).items) : [];
+    state.watchlist = items.filter(function (w) { return w && typeof w.id === "string" && typeof w.name === "string"; });
+    state.loaded.watchlist = true;
+    render();
+  }
+
+  function fail(e) {
+    if (e && e.code === "revoked") state.error = "이 페이지의 데이터 접근 권한이 바뀌었습니다.";
+    else state.error = "저장소에 연결하지 못했습니다. 페이지를 새로 고쳐 보세요.";
+    render();
+  }
+
+  async function start() {
+    if (!window.claude || typeof window.claude.use !== "function") {
+      state.error = "claude.ai에서 열어야 브리핑을 볼 수 있습니다.";
+      render();
+      return;
+    }
+    var results = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    var db = results[0], user = results[1];
+    if (!db) {
+      state.error = "로그인한 상태에서 claude.ai로 열어야 브리핑을 볼 수 있습니다.";
+      render();
+      return;
+    }
+    state.db = db;
+    try {
+      if (user && typeof user.can === "function") {
+        var c = await user.can("data.write");
+        if (c === false) state.canWrite = false;
+      }
+    } catch (e) {}
+    db.collection("briefings").orderBy("date", "desc").limit(120).onSnapshot(onBriefings, fail);
+    db.doc("config/watchlist").onSnapshot(onWatchlist, fail);
+    render();
+  }
+
+  start().catch(function () { fail(null); });
+})();
+</script>
